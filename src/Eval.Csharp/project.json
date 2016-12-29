@@ -3,9 +3,11 @@
   "buildOptions": {
     "debugType": "portable"
   },
-  "dependencies": {},
+  "dependencies": {
+      "Microsoft.CodeAnalysis.CSharp": "2.0.0-rc2"
+  },
   "frameworks": {
-    "netstandard1.0": {
+    "netstandard1.3": {
       "dependencies": {
         "NETStandard.Library": "1.6.1"
       }
