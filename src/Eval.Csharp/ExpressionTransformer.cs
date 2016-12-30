@@ -59,6 +59,24 @@ namespace Eval.Csharp
                     return Expression.Divide(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
                 case SyntaxKind.ModuloExpression:
                     return Expression.Modulo(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                case SyntaxKind.EqualsExpression:
+                    return Expression.Equal(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                case SyntaxKind.NotEqualsExpression:
+                    return Expression.NotEqual(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                case SyntaxKind.LessThanExpression:
+                    return Expression.LessThan(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                case SyntaxKind.LessThanOrEqualExpression:
+                    return Expression.LessThanOrEqual(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                case SyntaxKind.GreaterThanExpression:
+                    return Expression.GreaterThan(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                case SyntaxKind.GreaterThanOrEqualExpression:
+                    return Expression.GreaterThanOrEqual(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                case SyntaxKind.LogicalAndExpression:
+                    return Expression.And(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                case SyntaxKind.LogicalOrExpression:
+                    return Expression.Or(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                case SyntaxKind.CoalesceExpression:
+                    return Expression.Coalesce(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
                 default:
                     return null;
             }
