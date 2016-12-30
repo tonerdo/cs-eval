@@ -143,6 +143,10 @@ namespace Eval.Csharp
             if (@value == null)
                 _variables.TryGetValue(identifier, out @value);
 
+            if (@value == null && _context != null)
+                @value = _context.Type.GetRuntimeField(identifier).GetValue(null) 
+                    ?? _context.Type.GetRuntimeProperty(identifier).GetValue(null);
+
             if (@value == null)
                 throw new Exception(string.Format("CS0103: The name '{0}' does not exist in the current context", identifier));
 
