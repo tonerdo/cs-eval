@@ -76,6 +76,26 @@ class ExpressionTransformer
         return Expression.PropertyOrField(TransformExpressionSyntax(node.Expression), node.Name.Identifier.ValueText);
     }
 
+    private MethodCallExpression TransformInvocationExpressionSyntax(InvocationExpressionSyntax node)
+    {
+        var suppliedArgs = node.ArgumentList.Arguments;
+        int argsLength = suppliedArgs.Count();
+        Expression[] arguments = new Expression[argsLength];
+
+        for (int i = 0; i < argsLength; i++)
+            arguments[i] = TransformExpressionSyntax(suppliedArgs[i].Expression);
+
+        ExpressionSyntax invoker = node.Expression;
+        if (invoker.Kind() == SyntaxKind.SimpleMemberAccessExpression)
+        {
+            string methodName = ((MemberAccessExpressionSyntax)invoker).Name.Identifier.ValueText;
+            var instance = TransformExpressionSyntax(((MemberAccessExpressionSyntax)invoker).Expression);
+            return Expression.Call(instance, methodName, null, arguments);
+        }
+
+        throw new Exception("Unsupported Expression");
+    }
+
     private Expression TransformExpressionSyntax(ExpressionSyntax node)
     {
         switch (node.GetType().ToString())
@@ -88,6 +108,8 @@ class ExpressionTransformer
                 return TransformIdentifierNameSyntax((IdentifierNameSyntax)node);
             case "Microsoft.CodeAnalysis.CSharp.Syntax.MemberAccessExpressionSyntax":
                 return TransformMemberAccessExpressionSyntax((MemberAccessExpressionSyntax)node);
+            case "Microsoft.CodeAnalysis.CSharp.Syntax.InvocationExpressionSyntax":
+                return TransformInvocationExpressionSyntax((InvocationExpressionSyntax)node);
             default:
                 throw new Exception("Unsupported Expression");
         }
