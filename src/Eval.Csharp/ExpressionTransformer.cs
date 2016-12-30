@@ -71,6 +71,11 @@ class ExpressionTransformer
         return Expression.Constant(@value, @value.GetType());
     }
 
+    private MemberExpression TransformMemberAccessExpressionSyntax(MemberAccessExpressionSyntax node)
+    {
+        return Expression.PropertyOrField(TransformExpressionSyntax(node.Expression), node.Name.Identifier.ValueText);
+    }
+
     private Expression TransformExpressionSyntax(ExpressionSyntax node)
     {
         switch (node.GetType().ToString())
@@ -81,6 +86,8 @@ class ExpressionTransformer
                 return TransformBinaryExpressionSyntax((BinaryExpressionSyntax)node);
             case "Microsoft.CodeAnalysis.CSharp.Syntax.IdentifierNameSyntax":
                 return TransformIdentifierNameSyntax((IdentifierNameSyntax)node);
+            case "Microsoft.CodeAnalysis.CSharp.Syntax.MemberAccessExpressionSyntax":
+                return TransformMemberAccessExpressionSyntax((MemberAccessExpressionSyntax)node);
             default:
                 throw new Exception("Unsupported Expression");
         }
