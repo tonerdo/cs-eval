@@ -62,6 +62,25 @@ namespace Eval.Csharp
             }
         }
 
+        private BinaryExpression TransformAssignmentExpressionSyntax(AssignmentExpressionSyntax node)
+        {
+            switch (node.Kind())
+            {
+                case SyntaxKind.AddAssignmentExpression:
+                    return Expression.AddAssign(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                case SyntaxKind.SubtractAssignmentExpression:
+                    return Expression.SubtractAssign(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                case SyntaxKind.MultiplyAssignmentExpression:
+                    return Expression.MultiplyAssign(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                case SyntaxKind.DivideAssignmentExpression:
+                    return Expression.DivideAssign(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                case SyntaxKind.ModuloAssignmentExpression:
+                    return Expression.ModuloAssign(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                default:
+                    return null;
+            }
+        }
+
         private ConstantExpression TransformIdentifierNameSyntax(IdentifierNameSyntax node)
         {
             string identifier = node.Identifier.ValueText;
@@ -135,6 +154,8 @@ namespace Eval.Csharp
                     return TransformInvocationExpressionSyntax((InvocationExpressionSyntax)node);
                 case "Microsoft.CodeAnalysis.CSharp.Syntax.ThisExpressionSyntax":
                     return TransformThisExpressionSyntax((ThisExpressionSyntax)node);
+                case "Microsoft.CodeAnalysis.CSharp.Syntax.AssignmentExpressionSyntax":
+                    return TransformAssignmentExpressionSyntax((AssignmentExpressionSyntax)node);
                 default:
                     throw new Exception("Unsupported Expression");
             }
