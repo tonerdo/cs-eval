@@ -14,11 +14,13 @@ namespace Eval.Csharp
         private string _code;
         private Dictionary<string, object> _variables;
         private ExecutionContext _context;
+        private List<Type> _exportedTypes;
 
         public Evaluator(string code)
         {
             this._code = code;
             this._variables = new Dictionary<string, object>();
+            this._exportedTypes = new List<Type>();
         }
 
         public Evaluator AddVariable<T>(string identifier, T @object)
@@ -45,6 +47,12 @@ namespace Eval.Csharp
             return this;
         }
 
+        public Evaluator AddTypes(params Type[] types)
+        {
+            this._exportedTypes.AddRange(types);
+            return this;
+        }
+
         private SyntaxTree ValidateCode()
         {
             if (string.IsNullOrEmpty(_code) || string.IsNullOrWhiteSpace(_code))
@@ -66,7 +74,7 @@ namespace Eval.Csharp
                 .OfType<ExpressionStatementSyntax>()
                 .First();
 
-            ExpressionTransformer transformer = new ExpressionTransformer(expr, _variables, _context);
+            ExpressionTransformer transformer = new ExpressionTransformer(expr, _variables, _context, _exportedTypes);
             return transformer;
         }
 
