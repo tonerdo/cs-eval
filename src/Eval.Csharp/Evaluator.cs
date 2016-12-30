@@ -13,6 +13,7 @@ namespace Eval.Csharp
     {
         private string _code;
         private Dictionary<string, object> _variables;
+        private ExecutionContext _context;
 
         public Evaluator(string code)
         {
@@ -23,6 +24,24 @@ namespace Eval.Csharp
         public Evaluator AddVariable<T>(string identifier, T @object)
         {
             this._variables.Add(identifier, @object);
+            return this;
+        }
+
+        public Evaluator SetContext(Type type)
+        {
+            if (type == null)
+                throw new Exception("Static context object cannot be null");
+
+            this._context = new ExecutionContext { Type = type, Value = null, IsStatic = true };
+            return this;
+        }
+
+        public Evaluator SetContext(object @object)
+        {
+            if (@object == null)
+                throw new Exception("Non-static context object cannot be null");
+
+            this._context = new ExecutionContext { Type = @object.GetType(), Value = @object, IsStatic = false };
             return this;
         }
 
@@ -47,7 +66,7 @@ namespace Eval.Csharp
                 .OfType<ExpressionStatementSyntax>()
                 .First();
 
-            ExpressionTransformer transformer = new ExpressionTransformer(expr, _variables);
+            ExpressionTransformer transformer = new ExpressionTransformer(expr, _variables, _context);
             return transformer;
         }
 
