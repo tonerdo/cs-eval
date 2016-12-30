@@ -57,6 +57,8 @@ namespace Eval.Csharp
                     return Expression.Multiply(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
                 case SyntaxKind.DivideExpression:
                     return Expression.Divide(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
+                case SyntaxKind.ModuloExpression:
+                    return Expression.Modulo(TransformExpressionSyntax(node.Left), TransformExpressionSyntax(node.Right));
                 default:
                     return null;
             }
