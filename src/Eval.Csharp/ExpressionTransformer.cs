@@ -83,6 +83,34 @@ namespace Eval.Csharp
             }
         }
 
+        private UnaryExpression TransformPrefixUnaryExpressionSyntax(PrefixUnaryExpressionSyntax node)
+        {
+            switch (node.Kind())
+            {
+                case SyntaxKind.PreIncrementExpression:
+                    return Expression.PreIncrementAssign(TransformExpressionSyntax(node.Operand));
+                case SyntaxKind.PreDecrementExpression:
+                    return Expression.PreDecrementAssign(TransformExpressionSyntax(node.Operand));
+                case SyntaxKind.LogicalNotExpression:
+                    return Expression.Negate(TransformExpressionSyntax(node.Operand));
+                default:
+                    return null;
+            }
+        }
+
+        private UnaryExpression TransformPostfixUnaryExpressionSyntax(PostfixUnaryExpressionSyntax node)
+        {
+            switch (node.Kind())
+            {
+                case SyntaxKind.PostIncrementExpression:
+                    return Expression.PostIncrementAssign(TransformExpressionSyntax(node.Operand));
+                case SyntaxKind.PostDecrementExpression:
+                    return Expression.PostDecrementAssign(TransformExpressionSyntax(node.Operand));
+                default:
+                    return null;
+            }
+        }
+
         private ConstantExpression TransformIdentifierNameSyntax(IdentifierNameSyntax node)
         {
             string identifier = node.Identifier.ValueText;
@@ -158,6 +186,10 @@ namespace Eval.Csharp
                     return TransformThisExpressionSyntax((ThisExpressionSyntax)node);
                 case "Microsoft.CodeAnalysis.CSharp.Syntax.AssignmentExpressionSyntax":
                     return TransformAssignmentExpressionSyntax((AssignmentExpressionSyntax)node);
+                case "Microsoft.CodeAnalysis.CSharp.Syntax.PrefixUnaryExpressionSyntax":
+                    return TransformPrefixUnaryExpressionSyntax((PrefixUnaryExpressionSyntax)node);
+                case "Microsoft.CodeAnalysis.CSharp.Syntax.PostfixUnaryExpressionSyntax":
+                    return TransformPostfixUnaryExpressionSyntax((PostfixUnaryExpressionSyntax)node);
                 default:
                     throw new Exception("Unsupported Expression");
             }
