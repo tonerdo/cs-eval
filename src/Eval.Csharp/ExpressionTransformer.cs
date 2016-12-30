@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -13,14 +14,16 @@ namespace Eval.Csharp
         private Dictionary<string, object> _variables;
         private ExpressionStatementSyntax _expr;
         private ExecutionContext _context;
+        private List<Type> _exportedTypes;
 
-        public ExpressionTransformer(ExpressionStatementSyntax expr) : this(expr, new Dictionary<string, object>(), null) { }
+        public ExpressionTransformer(ExpressionStatementSyntax expr) : this(expr, new Dictionary<string, object>(), null, new List<Type>()) { }
 
-        public ExpressionTransformer(ExpressionStatementSyntax expr, Dictionary<string, object> variables, ExecutionContext context)
+        public ExpressionTransformer(ExpressionStatementSyntax expr, Dictionary<string, object> variables, ExecutionContext context, List<Type> types)
         {
             _expr = expr;
             _variables = variables;
             _context = context;
+            _exportedTypes = types;
         }
 
         private ConstantExpression TransformLiteralExpression(LiteralExpressionSyntax node)
@@ -151,6 +154,32 @@ namespace Eval.Csharp
             return Expression.Constant(this._context.Value, this._context.Type);
         }
 
+        private NewExpression TransformObjectCreationExpressionSyntax(ObjectCreationExpressionSyntax node)
+        {
+            var suppliedArgs = node.ArgumentList.Arguments;
+            int argsLength = suppliedArgs.Count();
+            Expression[] arguments = new Expression[argsLength];
+
+            for (int i = 0; i < argsLength; i++)
+                arguments[i] = TransformExpressionSyntax(suppliedArgs[i].Expression);
+
+            string typeName = node.Type.ToString();
+            Type type = _exportedTypes.FirstOrDefault(t => t.Name == typeName || t.FullName == typeName);
+            if (type == null)
+                throw new Exception(string.Format("CS0246: The type or namespace name '{0}' could not be found (are you missing a using directive or an assembly reference?)", typeName));
+
+            var constructors = type.GetTypeInfo().DeclaredConstructors;
+            foreach (ConstructorInfo constructor in constructors)
+            {
+                try
+                {
+                    return Expression.New(constructor, arguments);
+                }
+                catch (System.Exception) { }
+            }
+            throw new Exception(string.Format("Constructor with specified arguments could not be found on type '{0}'", typeName));
+        }
+
         private MemberExpression TransformMemberAccessExpressionSyntax(MemberAccessExpressionSyntax node)
         {
             return Expression.PropertyOrField(TransformExpressionSyntax(node.Expression), node.Name.Identifier.ValueText);
@@ -208,6 +237,8 @@ namespace Eval.Csharp
                     return TransformPrefixUnaryExpressionSyntax((PrefixUnaryExpressionSyntax)node);
                 case "Microsoft.CodeAnalysis.CSharp.Syntax.PostfixUnaryExpressionSyntax":
                     return TransformPostfixUnaryExpressionSyntax((PostfixUnaryExpressionSyntax)node);
+                case "Microsoft.CodeAnalysis.CSharp.Syntax.ObjectCreationExpressionSyntax":
+                    return TransformObjectCreationExpressionSyntax((ObjectCreationExpressionSyntax)node);
                 default:
                     throw new Exception("Unsupported Expression");
             }
