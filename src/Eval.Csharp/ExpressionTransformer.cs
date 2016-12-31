@@ -169,6 +169,7 @@ namespace Eval.Csharp
 
             string typeName = node.Type.ToString();
             Type type = _exportedTypes.FirstOrDefault(t => t.Name == typeName || t.FullName == typeName);
+
             if (type == null)
                 throw new Exception(string.Format("CS0246: The type or namespace name '{0}' could not be found (are you missing a using directive or an assembly reference?)", typeName));
 
@@ -208,9 +209,11 @@ namespace Eval.Csharp
             else if (invoker.Kind() == SyntaxKind.IdentifierName)
             {
                 string methodName = ((IdentifierNameSyntax)invoker).Identifier.ValueText;
+
                 if (this._context == null)
                     throw new Exception(string.Format("CS0103: The name '{0}' does not exist in the current context", methodName));
-                else if (!this._context.IsStatic)
+
+                if (!this._context.IsStatic)
                     throw new Exception(string.Format("CS0103: The name '{0}' does not exist in the current context", methodName));
 
                 return Expression.Call(this._context.Type, methodName, null, arguments);
