@@ -4,6 +4,7 @@
     "debugType": "portable"
   },
   "dependencies": {
+      "System.Reflection.TypeExtensions": "4.3.0",
       "Microsoft.CodeAnalysis.CSharp": "2.0.0-rc2"
   },
   "frameworks": {

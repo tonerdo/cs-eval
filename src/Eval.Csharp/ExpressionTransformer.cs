@@ -11,9 +11,8 @@ namespace Eval.Csharp
 {
     class ExpressionTransformer
     {
-        private Dictionary<string, object> _variables;
-        private ParameterExpression[] _exprVariables;
-        private Expression[] _expressions;
+        private List<ParameterExpression> _exprVariables;
+        private List<Expression> _expressions;
         private ExpressionStatementSyntax _expr;
         private ExecutionContext _context;
         private List<Type> _exportedTypes;
@@ -23,17 +22,16 @@ namespace Eval.Csharp
         public ExpressionTransformer(ExpressionStatementSyntax expr, Dictionary<string, object> variables, ExecutionContext context, List<Type> types)
         {
             _expr = expr;
-            _variables = variables;
             _context = context;
             _exportedTypes = types;
-            _expressions = new Expression[_variables.Count + 1];
-            _exprVariables = new ParameterExpression[_variables.Count];
+            _expressions = new List<Expression>();
+            _exprVariables = new List<ParameterExpression>();
 
-            var varsList = _variables.ToList();
+            var varsList = variables.ToList();
             for (int i = 0; i < varsList.Count; i++)
             {
-                _exprVariables[i] = Expression.Variable(varsList[i].Value.GetType(), varsList[i].Key);
-                _expressions[i] = Expression.Assign(_exprVariables[i], Expression.Constant(varsList[i].Value, varsList[i].Value.GetType()));
+                _exprVariables.Add(Expression.Variable(varsList[i].Value.GetType(), varsList[i].Key));
+                _expressions.Add(Expression.Assign(_exprVariables[i], Expression.Constant(varsList[i].Value, varsList[i].Value.GetType())));
             }
         }
 
@@ -146,19 +144,25 @@ namespace Eval.Csharp
         private ParameterExpression TransformIdentifierNameSyntax(IdentifierNameSyntax node)
         {
             string identifier = node.Identifier.ValueText;
-            object @value = null;
+            var param = _exprVariables.FirstOrDefault(v => v.Name == identifier);
 
-            if (@value == null)
-                _variables.TryGetValue(identifier, out @value);
+            if (param == null)
+            {
+                BindingFlags bindingFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+                FieldInfo fieldInfo = _context.Type.GetField(identifier, bindingFlags);
+                PropertyInfo propInfo = _context.Type.GetProperty(identifier, bindingFlags);
 
-            if (@value == null && _context != null)
-                @value = _context.Type.GetRuntimeField(identifier).GetValue(_context.Value)
-                    ?? _context.Type.GetRuntimeProperty(identifier).GetValue(_context.Value);
+                if (fieldInfo == null && propInfo == null)
+                    throw new Exception(string.Format("CS0103: The name '{0}' does not exist in the current context", identifier));
 
-            if (@value == null)
-                throw new Exception(string.Format("CS0103: The name '{0}' does not exist in the current context", identifier));
+                var value = fieldInfo?.GetValue(null) ?? propInfo?.GetValue(null);
+                var variable = Expression.Variable(value.GetType(), identifier);
+                _exprVariables.Add(variable);
+                _expressions.Add(Expression.Assign(variable, Expression.Constant(value, value.GetType())));
+                param = variable;
+            }
 
-            return _exprVariables.First(v => v.Name == identifier);
+            return param;
         }
 
         private ConstantExpression TransformThisExpressionSyntax(ThisExpressionSyntax node)
@@ -258,7 +262,9 @@ namespace Eval.Csharp
 
         public Expression Transform()
         {
-            _expressions[_expressions.Length - 1] = TransformExpressionSyntax(_expr.ChildNodes().OfType<ExpressionSyntax>().First());
+            _expressions.Add(
+                TransformExpressionSyntax(_expr.ChildNodes().OfType<ExpressionSyntax>().First())
+            );
             return Expression.Block(
                 _exprVariables,
                 _expressions
