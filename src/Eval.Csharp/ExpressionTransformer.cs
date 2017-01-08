@@ -14,12 +14,10 @@ namespace Eval.Csharp
         private List<ParameterExpression> _exprVariables;
         private List<Expression> _expressions;
         private ExpressionStatementSyntax _expr;
-        private ExecutionContext _context;
+        private object _context;
         private List<Type> _exportedTypes;
 
-        public ExpressionTransformer(ExpressionStatementSyntax expr) : this(expr, new Dictionary<string, object>(), null, new List<Type>()) { }
-
-        public ExpressionTransformer(ExpressionStatementSyntax expr, Dictionary<string, object> variables, ExecutionContext context, List<Type> types)
+        public ExpressionTransformer(ExpressionStatementSyntax expr, Dictionary<string, object> variables, object context, List<Type> types)
         {
             _expr = expr;
             _context = context;
@@ -149,8 +147,8 @@ namespace Eval.Csharp
             if (param == null)
             {
                 BindingFlags bindingFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-                FieldInfo fieldInfo = _context.Type.GetField(identifier, bindingFlags);
-                PropertyInfo propInfo = _context.Type.GetProperty(identifier, bindingFlags);
+                FieldInfo fieldInfo = _context.GetType().GetField(identifier, bindingFlags);
+                PropertyInfo propInfo = _context.GetType().GetProperty(identifier, bindingFlags);
 
                 if (fieldInfo == null && propInfo == null)
                     throw new Exception(string.Format("CS0103: The name '{0}' does not exist in the current context", identifier));
@@ -167,7 +165,7 @@ namespace Eval.Csharp
 
         private ConstantExpression TransformThisExpressionSyntax(ThisExpressionSyntax node)
         {
-            return Expression.Constant(this._context.Value, this._context.Type);
+            return Expression.Constant(this._context, this._context.GetType());
         }
 
         private NewExpression TransformObjectCreationExpressionSyntax(ObjectCreationExpressionSyntax node)
@@ -225,7 +223,7 @@ namespace Eval.Csharp
                 if (this._context == null)
                     throw new Exception(string.Format("CS0103: The name '{0}' does not exist in the current context", methodName));
 
-                return Expression.Call(this._context.Type, methodName, null, arguments);
+                return Expression.Call(this._context.GetType(), methodName, null, arguments);
             }
 
             throw new Exception("Unsupported Expression");

@@ -13,7 +13,7 @@ namespace Eval.Csharp
     {
         private string _code;
         private Dictionary<string, object> _variables;
-        private ExecutionContext _context;
+        private object _context;
         private List<Type> _exportedTypes;
 
         public Evaluator(string code)
@@ -23,27 +23,18 @@ namespace Eval.Csharp
             this._exportedTypes = new List<Type>();
         }
 
-        public Evaluator AddVariable<T>(string identifier, T @object)
+        public Evaluator AddVariable<T>(string identifier, T obj)
         {
-            this._variables.Add(identifier, @object);
+            this._variables.Add(identifier, obj);
             return this;
         }
 
-        public Evaluator SetContext(Type type)
+        public Evaluator SetContext(object obj)
         {
-            if (type == null)
-                throw new Exception("Static context object cannot be null");
+            if (obj == null)
+                throw new Exception("Context object cannot be null");
 
-            this._context = new ExecutionContext { Type = type, Value = null, IsStatic = true };
-            return this;
-        }
-
-        public Evaluator SetContext(object @object)
-        {
-            if (@object == null)
-                throw new Exception("Non-static context object cannot be null");
-
-            this._context = new ExecutionContext { Type = @object.GetType(), Value = @object, IsStatic = false };
+            this._context = obj;
             return this;
         }
 
@@ -67,7 +58,7 @@ namespace Eval.Csharp
             return tree;
         }
 
-        private ExpressionTransformer GetExpressionTransformer()
+        private ExpressionTransformer CreateExpressionTransformer()
         {
             ExpressionStatementSyntax expr = ValidateCode().GetRoot()
                 .DescendantNodes()
@@ -80,7 +71,7 @@ namespace Eval.Csharp
 
         private T EvaluateImpl<T>()
         {
-            var transformer = GetExpressionTransformer();
+            var transformer = CreateExpressionTransformer();
             var expression = Expression.Lambda<T>(transformer.Transform());
             return expression.Compile();
         }
