@@ -44,7 +44,7 @@ namespace Eval.Csharp
             return this;
         }
 
-        private SyntaxTree ValidateCode()
+        private SyntaxTree ValidateExpression()
         {
             if (string.IsNullOrEmpty(_code) || string.IsNullOrWhiteSpace(_code))
                 throw new Exception("Code cannot be empty or null");
@@ -60,7 +60,7 @@ namespace Eval.Csharp
 
         private ExpressionTransformer CreateExpressionTransformer()
         {
-            ExpressionStatementSyntax expr = ValidateCode().GetRoot()
+            ExpressionStatementSyntax expr = ValidateExpression().GetRoot()
                 .DescendantNodes()
                 .OfType<ExpressionStatementSyntax>()
                 .First();
