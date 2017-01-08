@@ -12,6 +12,8 @@ namespace Eval.Csharp
     class ExpressionTransformer
     {
         private Dictionary<string, object> _variables;
+        private ParameterExpression[] _exprVariables;
+        private Expression[] _expressions;
         private ExpressionStatementSyntax _expr;
         private ExecutionContext _context;
         private List<Type> _exportedTypes;
@@ -24,6 +26,15 @@ namespace Eval.Csharp
             _variables = variables;
             _context = context;
             _exportedTypes = types;
+            _expressions = new Expression[_variables.Count + 1];
+            _exprVariables = new ParameterExpression[_variables.Count];
+
+            var varsList = _variables.ToList();
+            for (int i = 0; i < varsList.Count; i++)
+            {
+                _exprVariables[i] = Expression.Variable(varsList[i].Value.GetType(), varsList[i].Key);
+                _expressions[i] = Expression.Assign(_exprVariables[i], Expression.Constant(varsList[i].Value, varsList[i].Value.GetType()));
+            }
         }
 
         private ConstantExpression TransformLiteralExpression(LiteralExpressionSyntax node)
@@ -132,25 +143,22 @@ namespace Eval.Csharp
             }
         }
 
-        private ConstantExpression TransformIdentifierNameSyntax(IdentifierNameSyntax node)
+        private ParameterExpression TransformIdentifierNameSyntax(IdentifierNameSyntax node)
         {
             string identifier = node.Identifier.ValueText;
             object @value = null;
-
-            if (identifier == "this")
-                @value = this._context.Value;
 
             if (@value == null)
                 _variables.TryGetValue(identifier, out @value);
 
             if (@value == null && _context != null)
-                @value = _context.Type.GetRuntimeField(identifier).GetValue(null) 
-                    ?? _context.Type.GetRuntimeProperty(identifier).GetValue(null);
+                @value = _context.Type.GetRuntimeField(identifier).GetValue(_context.Value)
+                    ?? _context.Type.GetRuntimeProperty(identifier).GetValue(_context.Value);
 
             if (@value == null)
                 throw new Exception(string.Format("CS0103: The name '{0}' does not exist in the current context", identifier));
 
-            return Expression.Constant(@value, @value.GetType());
+            return _exprVariables.First(v => v.Name == identifier);
         }
 
         private ConstantExpression TransformThisExpressionSyntax(ThisExpressionSyntax node)
@@ -213,9 +221,6 @@ namespace Eval.Csharp
                 if (this._context == null)
                     throw new Exception(string.Format("CS0103: The name '{0}' does not exist in the current context", methodName));
 
-                if (!this._context.IsStatic)
-                    throw new Exception(string.Format("CS0103: The name '{0}' does not exist in the current context", methodName));
-
                 return Expression.Call(this._context.Type, methodName, null, arguments);
             }
 
@@ -253,7 +258,11 @@ namespace Eval.Csharp
 
         public Expression Transform()
         {
-            return TransformExpressionSyntax(_expr.ChildNodes().OfType<ExpressionSyntax>().First());
+            _expressions[_expressions.Length - 1] = TransformExpressionSyntax(_expr.ChildNodes().OfType<ExpressionSyntax>().First());
+            return Expression.Block(
+                _exprVariables,
+                _expressions
+            );
         }
     }
 }
